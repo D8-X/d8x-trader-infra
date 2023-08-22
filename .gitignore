@@ -1,0 +1,11 @@
+# Terraform
+.terraform/
+# Tf state and tf state backup
+*.tfstate
+*.tfstate.*
+
+# SSH keys generated via run.sh
+id_key*
+
+# Auto generated inventory
+hosts.cfg
