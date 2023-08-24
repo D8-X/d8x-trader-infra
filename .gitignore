@@ -1,3 +1,5 @@
+.vscode
+
 # Terraform
 .terraform/
 # Tf state and tf state backup
@@ -9,3 +11,9 @@ id_key*
 
 # Auto generated inventory
 hosts.cfg
+
+# User password file
+password.txt
+
+deployment/.env
+deployment/pg.crt

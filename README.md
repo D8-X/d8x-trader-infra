@@ -27,9 +27,33 @@ export LINODE_TOKEN="<YOUR_TOKEN>"
 **Note!**, you can explore the `vars.tf` file to see available terraform
 variables.
 
+## Dot env and configs
+
+Copy the `.env.example` as `.env` in `deployment` directory
+
+You can edit environment variables in `deployment/.env` file. These environment
+vairables will be used when deploying docker stack in swarm.
+
+You should also edit the following configuration files:
+
+```bash
+live.referralSettings.json
+live.rpc.json
+live.wsConfig.json
+```
+
+The `deployment` directory will be copied to your manager node. Configs and .env
+are used when deploying docker stack in your swarm cluster.
+
 ### Spin up infrastructure
 
 Simply run `./run.sh` script which will walk you through provisioning servers on
 your linode account via terraform and then configuring them wth ansible to run
 a docker swarm.
  
+You will need the following details to spin up a cluster:
+
+- Linode API token, which you can get in your linode account settings
+- Provisioned database cluster in linode. You can get the ID of database cluster
+  from the cluster management url
+  (https://cloud.linode.com/databases/postgresql/<ID>) or via `linode-cli`. 

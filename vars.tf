@@ -20,3 +20,9 @@ variable "authorized_keys" {
   type        = list(string)
   description = "List of ssh public keys that will be added to each server"
 }
+
+variable "linode_db_cluster_id" {
+  type        = number
+  description = "Linode postgres database cluster id (must be already created)"
+  default     = -1
+}
