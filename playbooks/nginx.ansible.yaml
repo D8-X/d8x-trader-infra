@@ -1,0 +1,33 @@
+- hosts: managers
+  name: Setup nginx related configurations
+  become: true
+  tasks:
+    - name: Remove default site config
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+    - name: Copy nginx template
+      ansible.builtin.copy:
+        src: ../nginx.configured.conf
+        dest: /etc/nginx/sites-enabled/d8x
+        mode: "644"
+    - name: Reload nginx
+      ansible.builtin.systemd_service:
+        state: reloaded
+        name: nginx
+    # Install certbot snap
+    - name: Remove apt certbot
+      ansible.builtin.apt:
+        name:
+          - certbot
+        state: absent
+    - name: Install certbot snap
+      community.general.snap:
+        name: certbot
+        classic: true
+        state: present
+    - name: Symlink certbot
+      ansible.builtin.file:
+        src: /snap/bin/certbot
+        dest: /usr/bin/certbot
+        state: link

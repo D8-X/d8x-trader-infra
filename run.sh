@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -o pipefail
 
 # Some configurable defaults used in the cluster creation process
 
@@ -139,6 +139,58 @@ EOF
   
 }
 
+run_collect_domains_cp_nginxconf() {
+    echo ""
+    echo ""
+    echo "------------------------------------------------------------"
+    echo "Configuring nginx"
+    echo "------------------------------------------------------------"
+    echo ""
+    
+    mngr=$(get_manager_ip)
+    echo -e "Before continuing to setup nginx, make sure you update your \nDNS A records to point to your manager ip address (${mngr})\n\n"
+    echo -e "Make sure you enter (sub)domains only - without HTTP or HTTPS prefix! \nThese values will be set as server_name directives in nginx.conf\n"  
+
+    # read -p "Main HTTP (sub)domain: " MAIN_API_HTTP
+    # read -p "Main Websockets (sub)domain: " MAIN_API_WS
+    # read -p "History HTTP (sub)domain: " HISTORY_API_HTTP
+    # read -p "Referral HTTP (sub)domain: " REFERRAL_API_HTTP
+    # read -p "PXWS HTTP (sub)domain: " PXWS_API_HTTP
+    # read -p "PXWS Websockets (sub)domain: " PXWS_API_WS
+
+    # cat ./nginx.conf \
+    #     | sed -E "s/%main%/${MAIN_API_HTTP}/"  \
+    #     | sed -E "s/%main_ws%/${MAIN_API_WS}/" \
+    #     | sed -E "s/%history%/${HISTORY_API_HTTP}/" \
+    #     | sed -E "s/%referral%/${REFERRAL_API_HTTP}/" \
+    #     | sed -E "s/%pxws%/${PXWS_API_HTTP}/" \
+    #     | sed -E "s/%pxws_ws%/${PXWS_API_WS}/" \
+    #     | tee ./nginx.configured.conf >/dev/null
+
+    password=$(cat ./password.txt)
+
+    ansible-playbook -i ./hosts.cfg -u "${DEFAULT_USER_NAME}" \
+        --extra-vars "ansible_ssh_private_key_file=${DEFAULT_KEY_PATH}" \
+        --extra-vars "ansible_host_key_checking=false" \
+        --extra-vars "ansible_become_pass=${password}" \
+        ./playbooks/nginx.ansible.yaml -v
+
+    if [ $? == 0 ];then 
+        echo ""
+        echo "-------------------------------------------------------------------"
+        echo "Nginx configuring was completed successfully. Do you want to set up"
+        echo "HTTP (install SSL certificates from Letsencrypt via certbot)"
+        echo "-------------------------------------------------------------------"
+        echo ""
+        read -p "(y/n) [y]: " setup_certs
+        setup_certs=${setup_certs:-"y"}
+        if [  "$setup_certs" = "y" ];then
+            echo "Running certbot setup for nginx on manager"
+            ssh_manager -t "sudo certbot --nginx"
+        fi
+    fi
+}
+
 echo -e "Welcome to D8X trader backend cluster setup. \nThis script will guide you on setting up and starting your d8x-trader-backend cluster on Linode\n"
 
 echo "Choose action to perform:"
@@ -146,6 +198,7 @@ echo "1. Full setup, terraform apply + ansible"
 echo "2. Run only terraform apply "
 echo "3. Run only ansible playbooks"
 echo "4. Deploy docker stack (via ssh on manager node)"    
+echo "5. Setup nginx and nginx.conf for all services on manager node (requires setting up DNS A records first)"    
 
 if [ -z $1 ];then
     read -p "Enter the action number [1]: " ACTION
@@ -173,15 +226,14 @@ case "$ACTION" in
         done
         printf "%-80s\r\n" ""
 
-        # Run ansible playbooks
-        echo ""
-        echo  "Running ansible playbooks"
-
         run_ansible
 
         run_deploy_swarm_cluster
 
         ssh_manager_message
+
+        # Must run last since we might establish ssh with terminal allocation to setup certs
+        run_collect_domains_cp_nginxconf
     ;;
 
     # Terraform only
@@ -196,6 +248,10 @@ case "$ACTION" in
 
     4)
         run_deploy_swarm_cluster
+    ;;
+
+    5)
+        run_collect_domains_cp_nginxconf
     ;;
 esac
 

@@ -17,3 +17,5 @@ password.txt
 
 deployment/.env
 deployment/pg.crt
+
+nginx.configured.conf
