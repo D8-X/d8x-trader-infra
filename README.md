@@ -87,7 +87,7 @@ are used when deploying docker stack in your swarm cluster.
 
 ## Spin up infrastructure
 
-**Note!**, you can explore the `vars.tf` file to see available terraform
+You can explore the `vars.tf` file to see available terraform
 variables. For example if you want to choose different region where you cluster
 is deployed, you would need to edit `region` variable.
 
@@ -109,7 +109,7 @@ After setup is completed the following files will be generated:
 - `id_key_ed25519` - ssh private key which you can use to ssh into your cluster servers.
 - `password.txt` - password for `d8xtrader` user created on each cluster server.
 
-During the setup you will be asked to provide domains or subdomain for cluster
+During the setup you will be asked to provide domains or subdomains for cluster
 services. These domain/subdomain values will be used in nginx configuration as
 `server_name` directives. You should also configure your DNS A records to point
 to manager node's public IP address as this will be needed when issuing
@@ -158,4 +158,37 @@ before):
   running `run.sh`.
 - Certbot snap installation will show an error from ansible, even though the
   certbot snap is installed correctly.
+
+
+# Troubleshooting
+
+Most of the command related to docker swarm must be executed on manager node.
+
+## Inspect services
+
+```bash
+docker service ls
+```
+
+## Inspect service logs
+
+```bash
+docker service logs <SERVICE>
+```
+
+## I changed configs or `.env` in `deployment` directory - how do I redeploy changes?
+
+Ssh into your manager node and remove the stack:
+```bash
+docker stack rm stack
+```
+Rerun `./run.sh` with `#4` (Deploy docker stack)
+
+## Common issues
+
+**Service loop restarts on error `Error: No Websocket RPC defined for chain ID...`**
+
+Make sure you have set a correct `WS` Websockets RPC url in `live.rpc.json`.
+
+
 
