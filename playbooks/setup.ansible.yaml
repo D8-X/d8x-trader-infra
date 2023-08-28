@@ -45,6 +45,28 @@
       notify:
         - Restart SSHD
 
+    # UFW configuration
+    - name: Allow port 22 ufw
+      community.general.ufw:
+        rule: allow
+        port: 22
+    # Docker swarm ports
+    - name: Allow port 2377 ufw
+      community.general.ufw:
+        rule: allow
+        port: 2377
+    - name: Allow port 7946 ufw
+      community.general.ufw:
+        rule: allow
+        port: 7946
+    - name: Allow port 4789 ufw
+      community.general.ufw:
+        rule: allow
+        port: 4789
+    - name: Enable ufw
+      community.general.ufw:
+        state: enabled
+
     # Installation of docker
     - name: Install essential packages
       ansible.builtin.apt:
@@ -121,3 +143,16 @@
         name: nginx
         enabled: true
         state: started
+
+    # HTTP(s) ports should be exposed only on manager
+    - name: Allow port 80 ufw
+      community.general.ufw:
+        rule: allow
+        port: 80
+        proto: tcp
+    - name: Allow port 443 ufw
+      community.general.ufw:
+        rule: allow
+        port: 443
+        proto: tcp
+        state: reloaded

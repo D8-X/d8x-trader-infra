@@ -10,7 +10,6 @@ services:
         max-file: "10"
     networks:
       - d8x_backend
-    restart: "always"
     deploy:
       replicas: 1
       # placement:
@@ -57,7 +56,6 @@ services:
       - CONFIG_PATH_WSCFG=/cfg_wscfg
     ports:
       - "${HISTORY_API_PORT_HTTP:-3003}:${HISTORY_API_PORT_HTTP:-3003}"
-    restart: on-failure
     logging:
       driver: "json-file"
       options:
@@ -86,7 +84,6 @@ services:
       - CONFIG_PATH_WSCFG=/cfg_wscfg
     ports:
       - "${REFERRAL_API_PORT_HTTP:-3004}:${REFERRAL_API_PORT_HTTP:-3004}"
-    restart: on-failure
     logging:
       driver: "json-file"
       options:
@@ -113,7 +110,6 @@ services:
       - CONFIG_PATH_RPC=/cfg_rpc
       - CONFIG_PATH_REFERRAL_SETTINGS=/cfg_referral
       - CONFIG_PATH_WSCFG=/cfg_wscfg
-    restart: on-failure
     logging:
       driver: "json-file"
       options:

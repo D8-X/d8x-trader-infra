@@ -14,6 +14,7 @@ if [ -e /dev/urandom ]; then
 fi
 
 create_ssh_key() {
+    echo ""
     echo "Creating new ssh key pair..."
     ssh-keygen -t ed25519 -f "${DEFAULT_KEY_PATH}" -C "d8x-cluster-user"
 }
@@ -118,6 +119,7 @@ ssh_manager() {
 
 # Copy the deployments dir to manager, create configs and deploy the stack
 run_deploy_swarm_cluster() {
+    echo "Uploading ./deployment directory to manager server..."
     tar czvf - ./deployment | \
         ssh_manager 'tar xzf -'
     password=$(cat ./password.txt)
@@ -147,25 +149,34 @@ run_collect_domains_cp_nginxconf() {
     echo "------------------------------------------------------------"
     echo ""
     
-    mngr=$(get_manager_ip)
-    echo -e "Before continuing to setup nginx, make sure you update your \nDNS A records to point to your manager ip address (${mngr})\n\n"
+
+    mip=$(get_manager_ip)
+
+    echo -e "Before continuing to setup nginx, make sure you update your \nDNS A records to point to your manager ip address (${mip})\n\n"
     echo -e "Make sure you enter (sub)domains only - without HTTP or HTTPS prefix! \nThese values will be set as server_name directives in nginx.conf\n"  
 
-    # read -p "Main HTTP (sub)domain: " MAIN_API_HTTP
-    # read -p "Main Websockets (sub)domain: " MAIN_API_WS
-    # read -p "History HTTP (sub)domain: " HISTORY_API_HTTP
-    # read -p "Referral HTTP (sub)domain: " REFERRAL_API_HTTP
-    # read -p "PXWS HTTP (sub)domain: " PXWS_API_HTTP
-    # read -p "PXWS Websockets (sub)domain: " PXWS_API_WS
+    read -p "Main HTTP (sub)domain (e.g. main.d8x.xyz): " MAIN_API_HTTP
+    read -p "Main Websockets (sub)domain (e.g. ws.d8x.xyz): " MAIN_API_WS
+    read -p "History HTTP (sub)domain (e.g. history.d8x.xyz): " HISTORY_API_HTTP
+    read -p "Referral HTTP (sub)domain (e.g. referral.d8x.xyz): " REFERRAL_API_HTTP
+    read -p "PXWS HTTP (sub)domain (e.g. pxws-rest.d8x.xyz): " PXWS_API_HTTP
+    read -p "PXWS Websockets (sub)domain (e.g. pxws-ws.d8x.xyz): " PXWS_API_WS
 
-    # cat ./nginx.conf \
-    #     | sed -E "s/%main%/${MAIN_API_HTTP}/"  \
-    #     | sed -E "s/%main_ws%/${MAIN_API_WS}/" \
-    #     | sed -E "s/%history%/${HISTORY_API_HTTP}/" \
-    #     | sed -E "s/%referral%/${REFERRAL_API_HTTP}/" \
-    #     | sed -E "s/%pxws%/${PXWS_API_HTTP}/" \
-    #     | sed -E "s/%pxws_ws%/${PXWS_API_WS}/" \
-    #     | tee ./nginx.configured.conf >/dev/null
+    cat ./nginx.conf \
+        | sed -E "s/%main%/${MAIN_API_HTTP}/"  \
+        | sed -E "s/%main_ws%/${MAIN_API_WS}/" \
+        | sed -E "s/%history%/${HISTORY_API_HTTP}/" \
+        | sed -E "s/%referral%/${REFERRAL_API_HTTP}/" \
+        | sed -E "s/%pxws%/${PXWS_API_HTTP}/" \
+        | sed -E "s/%pxws_ws%/${PXWS_API_WS}/" \
+        | tee ./nginx.configured.conf >/dev/null
+
+    echo "Make sure to add DNS A record: A ${mip} ${MAIN_API_HTTP}"
+    echo "Make sure to add DNS A record: A ${mip} ${MAIN_API_WS}"
+    echo "Make sure to add DNS A record: A ${mip} ${HISTORY_API_HTTP}"
+    echo "Make sure to add DNS A record: A ${mip} ${REFERRAL_API_HTTP}"
+    echo "Make sure to add DNS A record: A ${mip} ${PXWS_API_HTTP}"
+    echo "Make sure to add DNS A record: A ${mip} ${PXWS_API_WS}"
 
     password=$(cat ./password.txt)
 
@@ -173,20 +184,24 @@ run_collect_domains_cp_nginxconf() {
         --extra-vars "ansible_ssh_private_key_file=${DEFAULT_KEY_PATH}" \
         --extra-vars "ansible_host_key_checking=false" \
         --extra-vars "ansible_become_pass=${password}" \
-        ./playbooks/nginx.ansible.yaml -v
+        ./playbooks/nginx.ansible.yaml
 
     if [ $? == 0 ];then 
         echo ""
         echo "-------------------------------------------------------------------"
+        echo "!!! Make sure you have configured your DNS A records to point to manager node !!!"
+        echo "Manager node public IP address (${mip})"
         echo "Nginx configuring was completed successfully. Do you want to set up"
-        echo "HTTP (install SSL certificates from Letsencrypt via certbot)"
+        echo "HTTPS (install SSL certificates from Letsencrypt via certbot)"
         echo "-------------------------------------------------------------------"
         echo ""
         read -p "(y/n) [y]: " setup_certs
         setup_certs=${setup_certs:-"y"}
         if [  "$setup_certs" = "y" ];then
-            echo "Running certbot setup for nginx on manager"
+            echo "Running certbot setup for nginx on manager. If you get asked for ${DEFAULT_USER_NAME} password, you can find it in ./password.txt"
             ssh_manager -t "sudo certbot --nginx"
+        else 
+            ssh_manager_message
         fi
     fi
 }
@@ -194,11 +209,11 @@ run_collect_domains_cp_nginxconf() {
 echo -e "Welcome to D8X trader backend cluster setup. \nThis script will guide you on setting up and starting your d8x-trader-backend cluster on Linode\n"
 
 echo "Choose action to perform:"
-echo "1. Full setup, terraform apply + ansible"
+echo "1. Full setup, terraform apply + ansible + deploy to docker swarm <-- choose this for first time setup"
 echo "2. Run only terraform apply "
 echo "3. Run only ansible playbooks"
 echo "4. Deploy docker stack (via ssh on manager node)"    
-echo "5. Setup nginx and nginx.conf for all services on manager node (requires setting up DNS A records first)"    
+echo "5. Setup nginx on manager node + certbot (requires setting up DNS A records first)"    
 
 if [ -z $1 ];then
     read -p "Enter the action number [1]: " ACTION

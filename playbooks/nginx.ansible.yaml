@@ -21,11 +21,15 @@
         name:
           - certbot
         state: absent
-    - name: Install certbot snap
+    - name: Install certbot snap (ignore on error)
       community.general.snap:
         name: certbot
         classic: true
         state: present
+        channel: latest/stable
+      # For some reason snap installation always errors even though the snap is
+      # installed
+      ignore_errors: true
     - name: Symlink certbot
       ansible.builtin.file:
         src: /snap/bin/certbot
