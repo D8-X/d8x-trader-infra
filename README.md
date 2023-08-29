@@ -22,7 +22,7 @@ Additional ansible galaxy packages are used and should be installed:
 $ ansible-galaxy collection install community.docker ansible.posix community.general
 ```
 
-Clone this repository and navigate you console into the project folder:
+Clone this repository and navigate into the project folder:
 ```
 $ git clone https://github.com/D8-X/d8x-trader-infra.git
 $ cd d8x-trader-infra
