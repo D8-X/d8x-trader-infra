@@ -13,7 +13,7 @@ resource "linode_instance" "manager" {
   type            = var.worker_size
   region          = var.region
   private_ip      = true
-  label           = "d8x-cluster-manager"
+  label           = format("%s-%s", var.server_label_prefix, "manager")
   image           = "linode/ubuntu22.04"
   booted          = true
   authorized_keys = var.authorized_keys
@@ -30,7 +30,24 @@ resource "linode_instance" "nodes" {
   type            = var.worker_size
   region          = var.region
   private_ip      = true
-  label           = "d8x-cluster-worker-${count.index + 1}"
+  label           = format("%s-%s", var.server_label_prefix, "worker-${count.index + 1}")
+  image           = "linode/ubuntu22.04"
+  booted          = true
+  authorized_keys = var.authorized_keys
+
+  #   interface {
+  #     purpose = "vlan"
+  #     label   = "d8x-cluster-vlan"
+  #   }
+
+}
+
+resource "linode_instance" "broker_server" {
+  count           = var.create_broker_server ? 1 : 0
+  type            = var.broker_size
+  region          = var.region
+  private_ip      = true
+  label           = format("%s-%s", var.server_label_prefix, "broker-server")
   image           = "linode/ubuntu22.04"
   booted          = true
   authorized_keys = var.authorized_keys
@@ -61,6 +78,8 @@ resource "local_file" "hosts_cfg" {
       manager_private_ip  = linode_instance.manager.private_ip_address
       workers_public_ips  = linode_instance.nodes.*.ip_address
       workers_private_ips = linode_instance.nodes.*.private_ip_address
+      broker_public_ip    = var.create_broker_server ? linode_instance.broker_server[0].ip_address : ""
+      broker_private_ip   = var.create_broker_server ? linode_instance.broker_server[0].private_ip_address : ""
     }
   )
   filename = "hosts.cfg"

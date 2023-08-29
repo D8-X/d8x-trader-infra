@@ -13,6 +13,9 @@ if [ -e /dev/urandom ]; then
     DEFAULT_USER_PASSWORD=$(cat /dev/urandom | tr -dc 'A-Za-z0-9!@#$%^&*()_+{}[]' | head -c16;echo;)    
 fi
 
+# Whether broker server will be created
+CREATE_BROKER_SERVER=false
+
 create_ssh_key() {
     echo ""
     echo "Creating new ssh key pair..."
@@ -54,9 +57,13 @@ get_manager_ip() {
     cat ./hosts.cfg | grep manager-1 | cut -d" " -f1
 }
 
+get_broker_ip() {
+    cat ./hosts.cfg | grep -A 1 broker | tail -1 | cut -d" " -f1
+}
 
 ssh_manager_message() {
     MANAGER_IP=$(get_manager_ip)
+    password=$(cat ./password.txt)
 
     echo ""
     echo ""
@@ -64,7 +71,7 @@ ssh_manager_message() {
 
     echo "SSH Into your manager node by running the following command: "
     echo "ssh ${DEFAULT_USER_NAME}@${MANAGER_IP} -i ${DEFAULT_KEY_PATH}"
-    echo "Password: ${DEFAULT_USER_PASSWORD}"
+    echo "Password: ${password}"
 
     echo "------------------------------------------------------------"
 }
@@ -80,10 +87,17 @@ run_terraform() {
 
     read -p "Enter your Linode postgres cluster ID: " db_cluster_id
     db_cluster_id=${db_cluster_id:--1}
-    
+
+    read -p "Do you want to provision and deploy d8x-broker-server service (y/n)[n]: " create_broker
+    create_broker=${create_broker:-"n"}
+    tf_broker_var="false"
+    if [ "$create_broker" == "y" ]; then
+        tf_broker_var="true"
+        CREATE_BROKER_SERVER=true
+    fi
+
     create_ssh_key
     SSH_PUBLIC_KEY=$(cat ./id_key_ed25519.pub)
-
 
     echo ""
     echo "Running terraform apply..."
@@ -92,7 +106,8 @@ run_terraform() {
     AUTHORIZED_KEYS_VAL="[\"${SSH_PUBLIC_KEY}\"]"
     terraform apply -auto-approve \
         -var="authorized_keys=${AUTHORIZED_KEYS_VAL}" \
-        -var="linode_db_cluster_id=${db_cluster_id}" 
+        -var="linode_db_cluster_id=${db_cluster_id}" \
+        -var="create_broker_server=${tf_broker_var}" 
 
     # Pull the database certificate
     if [ "$db_cluster_id" -gt 0 ];then
@@ -115,6 +130,10 @@ get_db_ca_key() {
 
 ssh_manager() {
     ssh "${DEFAULT_USER_NAME}@$(get_manager_ip)" -i "${DEFAULT_KEY_PATH}" "$@"
+}
+
+ssh_broker() {
+    ssh "${DEFAULT_USER_NAME}@$(get_broker_ip)" -i "${DEFAULT_KEY_PATH}" "$@"
 }
 
 # Copy the deployments dir to manager, create configs and deploy the stack
@@ -145,7 +164,7 @@ run_collect_domains_cp_nginxconf() {
     echo ""
     echo ""
     echo "------------------------------------------------------------"
-    echo "Configuring nginx"
+    echo "Configuring nginx on swarm manager"
     echo "------------------------------------------------------------"
     echo ""
     
@@ -155,12 +174,12 @@ run_collect_domains_cp_nginxconf() {
     echo -e "Before continuing to setup nginx, make sure you update your \nDNS A records to point to your manager ip address (${mip})\n\n"
     echo -e "Make sure you enter (sub)domains only - without HTTP or HTTPS prefix! \nThese values will be set as server_name directives in nginx.conf\n"  
 
-    read -p "Main HTTP (sub)domain (e.g. main.d8x.xyz): " MAIN_API_HTTP
-    read -p "Main Websockets (sub)domain (e.g. ws.d8x.xyz): " MAIN_API_WS
-    read -p "History HTTP (sub)domain (e.g. history.d8x.xyz): " HISTORY_API_HTTP
-    read -p "Referral HTTP (sub)domain (e.g. referral.d8x.xyz): " REFERRAL_API_HTTP
-    read -p "PXWS HTTP (sub)domain (e.g. pxws-rest.d8x.xyz): " PXWS_API_HTTP
-    read -p "PXWS Websockets (sub)domain (e.g. pxws-ws.d8x.xyz): " PXWS_API_WS
+    read -p "Enter Main HTTP (sub)domain (e.g. main.d8x.xyz): " MAIN_API_HTTP
+    read -p "Enter Main Websockets (sub)domain (e.g. ws.d8x.xyz): " MAIN_API_WS
+    read -p "Enter History HTTP (sub)domain (e.g. history.d8x.xyz): " HISTORY_API_HTTP
+    read -p "Enter Referral HTTP (sub)domain (e.g. referral.d8x.xyz): " REFERRAL_API_HTTP
+    read -p "Enter PXWS HTTP (sub)domain (e.g. pxws-rest.d8x.xyz): " PXWS_API_HTTP
+    read -p "Enter PXWS Websockets (sub)domain (e.g. pxws-ws.d8x.xyz): " PXWS_API_WS
 
     cat ./nginx.conf \
         | sed -E "s/%main%/${MAIN_API_HTTP}/"  \
@@ -200,20 +219,79 @@ run_collect_domains_cp_nginxconf() {
         if [  "$setup_certs" = "y" ];then
             echo "Running certbot setup for nginx on manager. If you get asked for ${DEFAULT_USER_NAME} password, you can find it in ./password.txt"
             ssh_manager -t "sudo certbot --nginx"
-        else 
-            ssh_manager_message
+            wait
         fi
+
+        ssh_manager_message
     fi
+}
+
+run_deploy_broker_server() {
+    echo ""
+    echo "Provisioning and deploying broker server"
+
+    read -p "Enter your broker private key (BROKER_KEY) which will be used in broker-server service: " BROKER_KEY
+    read -p "Enter your BROKER_FEE_TBPS value [60]: " BROKER_FEE_TBPS
+    BROKER_FEE_TBPS=${BROKER_FEE_TBPS:-60}
+
+    echo "Uploading ./deployment-broker directory to broker server..."
+    tar czvf - ./deployment-broker | \
+        ssh_broker 'tar xzf -'
+
+    echo "Starting broker-server service on broker server"
+    password=$(cat ./password.txt)
+    ssh_broker "cd ./deployment-broker && echo '${password}' | sudo -S BROKER_KEY=${BROKER_KEY} BROKER_FEE_TBPS=${BROKER_FEE_TBPS} docker compose up -d"
+}
+
+run_configure_broker_server_nginx_certbot() {
+    echo ""
+    echo ""
+    echo "------------------------------------------------------------"
+    echo "Configuring nginx on broker server"
+    echo "------------------------------------------------------------"
+    echo ""
+    
+    mip=$(get_broker_ip)
+
+    echo -e "Before continuing to setup nginx, make sure you update your \nDNS A records to point to your broker ip address (${mip})\n"
+    echo -e "Make sure you enter (sub)domains only - without HTTP or HTTPS prefix! \nThese values will be set as server_name directives in nginx.conf\n"  
+
+    read -p "Enter Broker-server HTTP (sub)domain (e.g. broker.d8x.xyz): " BROKER_HOST
+
+    cat ./nginx-broker.conf \
+        | sed -E "s/%broker_server%/${BROKER_HOST}/"  \
+        | tee ./nginx-broker.configured.conf >/dev/null
+
+    password=$(cat ./password.txt)
+
+    ansible-playbook -i ./hosts.cfg -u "${DEFAULT_USER_NAME}" \
+        --extra-vars "ansible_ssh_private_key_file=${DEFAULT_KEY_PATH}" \
+        --extra-vars "ansible_host_key_checking=false" \
+        --extra-vars "ansible_become_pass=${password}" \
+        ./playbooks/broker.ansible.yaml
+
+    echo ""
+    echo "Configuring certbot on broker server"    
+    echo "Confirm that you have set up DNS A record ${BROKER_HOST} to point to your broker server ip address ${mip}."
+    read -p "Press enter to confirm..." continue
+
+    ssh_broker -t "sudo certbot --nginx"
+    wait
+    echo "Broker server setup done!"
+    echo "Make sure you have edited REMOTE_BROKER_HTTP value in your deployment/.env file!" 
+    read -p      "Press enter to confirm..." continue
+
 }
 
 echo -e "Welcome to D8X trader backend cluster setup. \nThis script will guide you on setting up and starting your d8x-trader-backend cluster on Linode\n"
 
 echo "Choose action to perform:"
-echo "1. Full setup, terraform apply + ansible + deploy to docker swarm <-- choose this for first time setup"
+echo "1. Full setup, terraform apply + ansible + deploy to docker swarm + broker-server setup <-- choose this for first time setup"
 echo "2. Run only terraform apply "
 echo "3. Run only ansible playbooks"
 echo "4. Deploy docker stack (via ssh on manager node)"    
 echo "5. Setup nginx on manager node + certbot (requires setting up DNS A records first)"    
+echo "6. Deploy and configure broker-server"
 
 if [ -z $1 ];then
     read -p "Enter the action number [1]: " ACTION
@@ -243,6 +321,12 @@ case "$ACTION" in
 
         run_ansible
 
+        # Broker server should be deployed before swarm
+        if [ $CREATE_BROKER_SERVER == true ]; then
+            run_deploy_broker_server
+            run_configure_broker_server_nginx_certbot
+        fi 
+
         run_deploy_swarm_cluster
 
         ssh_manager_message
@@ -268,6 +352,12 @@ case "$ACTION" in
     5)
         run_collect_domains_cp_nginxconf
     ;;
+
+    6)
+        run_deploy_broker_server
+        run_configure_broker_server_nginx_certbot
+    ;;
+
 esac
 
 

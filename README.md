@@ -1,9 +1,9 @@
 # D8X-trader-backend infrastructure
 
 This directory contains infrastructure and deployment automation code for
-d8x-trader-backend. This readme acts as a guide on how to use this repository
-and its contents to automatically spin up d8x-trader docker swarm cluster on
-linode cloud.
+d8x-trader-backend and optionally for d8x-broker-server. This readme acts as a
+guide on how to use this repository and its contents to automatically spin up
+d8x-trader docker swarm cluster on linode cloud.
 
 **Make sure you read this documentation to properly setup your d8x-trader
 backend cluster!**
@@ -60,6 +60,22 @@ dashboard. Database id can be found in database's overview page url:
 https://cloud.linode.com/databases/postgresql/81283 -> db id is 81283
 ```
 
+# Swarm and broker-server
+
+Swarm deployment deploys `d8x-trader-backend` services:
+- Main API
+- History API
+- Referral API
+- Pyth price connector API
+
+Swarm deployment related configuration files reside in `deployment` directory,
+these files are copied to manager node when spinning up the services.
+
+
+Optional broker server deployment deploys `d8x-broker-server` remote broker
+service. Directory `depoloyment-broker` contains configs related to broker
+server deployment.
+
 ## Dot env and configs
 
 Copy the `.env.example` as `.env` in `deployment` directory
@@ -89,6 +105,9 @@ otherwise the services will not work properly.
 
 The `deployment` directory will be copied to your manager node. Configs and .env
 are used when deploying docker stack in your swarm cluster.
+
+If you opted in to deploy broker-server, you should make sure `chainConfig.json`
+in `deployment-broker` directory is configured as per your needs.
 
 ## Spin up infrastructure
 

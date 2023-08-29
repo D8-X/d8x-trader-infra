@@ -1,5 +1,5 @@
 - hosts: all
-  name: Setup cluster
+  name: Setup swarm cluster
   become: true
   vars:
     # Private ip address of the main manager node
@@ -19,6 +19,7 @@
     - name: Set hostname
       ansible.builtin.hostname:
         name: "{{ hostvars[inventory_hostname]['hostname'] }}"
+      when: "'hostname' in hostvars[inventory_hostname]"
     - name: Create default user
       ansible.builtin.user:
         name: "{{ default_user }}"
@@ -101,12 +102,12 @@
           - docker-buildx-plugin
           - docker-compose-plugin
         update_cache: true
-
-    # Docker swarm setup
     - name: Install docker pip module
       ansible.builtin.pip:
         name:
           - docker
+
+    # Docker swarm setup
     - name: Init a new swarm on manager with private ip address
       when: inventory_hostname in groups["managers"]
       community.docker.docker_swarm:
@@ -130,7 +131,9 @@
         remote_addrs: ["{{ manager_ip }}"]
 
 ## Manager specific setup
-- hosts: managers
+- hosts:
+    - managers
+    - broker
   name: Configure manager
   tasks:
     - name: Install nginx on manager

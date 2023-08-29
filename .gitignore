@@ -5,6 +5,8 @@
 # Tf state and tf state backup
 *.tfstate
 *.tfstate.*
+# User defined tfvars
+vars.tfvars
 
 # SSH keys generated via run.sh
 id_key*
@@ -19,3 +21,5 @@ deployment/.env
 deployment/pg.crt
 
 nginx.configured.conf
+nginx-broker.configured.conf
+

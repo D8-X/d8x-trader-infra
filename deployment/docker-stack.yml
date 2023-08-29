@@ -26,6 +26,7 @@ services:
     environment:
       - BROKER_KEY=${BROKER_KEY}
       - BROKER_FEE_TBPS=${BROKER_FEE_TBPS}
+      - REMOTE_BROKER_HTTP=${REMOTE_BROKER_HTTP}
       - REDIS_URL=${REDIS_URL:-redis://:thisismypassword@redis:6379/0}
       - CHAIN_ID=${CHAIN_ID:-80001}
       - SDK_CONFIG_NAME=${SDK_CONFIG_NAME:-testnet}
@@ -76,6 +77,7 @@ services:
       - DATABASE_DSN_REFERRAL=${DATABASE_DSN_REFERRAL}
       - REFERRAL_API_PORT=${REFERRAL_API_PORT_HTTP:-3004}
       - BROKER_KEY=${BROKER_KEY}
+      - REMOTE_BROKER_HTTP=${REMOTE_BROKER_HTTP}
       - CHAIN_ID=${CHAIN_ID}
       - CORS_ON=${CORS_ON}
       - HISTORY_API_ENDPOINT="http://history:${HISTORY_API_PORT_HTTP:-3003}"
