@@ -13,19 +13,24 @@ backend cluster!**
 Before starting, make sure you have the following tools installed on your
 system:
 
-- [Terraform](https://developer.hashicorp.com/terraform/downloads):
+- [Terraform](https://developer.hashicorp.com/terraform/downloads)
 - [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html#installing-ansible)
 
 Additional ansible galaxy packages are used and should be installed:
 
 ```bash
-ansible-galaxy collection install community.docker ansible.posix community.general
+$ ansible-galaxy collection install community.docker ansible.posix community.general
 ```
 
+Clone this repository and navigate you console into the project folder:
+```
+$ git clone https://github.com/D8-X/d8x-trader-infra.git
+$ cd d8x-trader-infra
+```
 Initialize your terraform setup before starting:
 
 ```bash
-terraform init
+$ terraform init
 ```
 
 Make sure you have a domain and are able to edit its DNS settings as you will
@@ -79,7 +84,7 @@ live.rpc.json
 live.wsConfig.json
 ```
 
-Make sure you provie websockets urls for `WS` properties in `live.rpc.json`,
+Make sure you provide websockets urls for `WS` properties in `live.rpc.json`,
 otherwise the services will not work properly.
 
 The `deployment` directory will be copied to your manager node. Configs and .env
