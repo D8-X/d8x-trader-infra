@@ -205,6 +205,20 @@ All of this can be configured as follows.
 
 If you opted in to deploy broker-server, you should make sure `chainConfig.json`
 in `deployment-broker` directory is configured as per your needs.
+<details>
+ <summary>Broker-Server Configuration</summary>
+ 
+ The entry `allowedExecutors` in `chainConfig.json` must contain the address that executes payments for the referral system,
+ that is, `allowedExecutors` must contain the address that correspond to the private 
+key we set as `BROKER_KEY` in `deployment/.env`.
+
+ The provided entries should be fine for the following variables:
+ * `chainId` the chain id the entry refers to
+ * `name` name of the configuration-entry (for readability of the config only)
+ * `multiPayCtrctAddr` must be in line with the same entry in live.referralSettings.json
+ * `perpetualManagerProxyAddr` the address of the perpetuals-contract
+ 
+</details>
 
 ## Spin up infrastructure
 
