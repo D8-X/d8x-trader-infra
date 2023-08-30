@@ -68,11 +68,9 @@ ssh_manager_message() {
     echo ""
     echo ""
     echo "------------------------------------------------------------"
-
     echo "SSH Into your manager node by running the following command: "
     echo "ssh ${DEFAULT_USER_NAME}@${MANAGER_IP} -i ${DEFAULT_KEY_PATH}"
     echo "Password: ${password}"
-
     echo "------------------------------------------------------------"
 }
 
@@ -143,15 +141,20 @@ run_deploy_swarm_cluster() {
         ssh_manager 'tar xzf -'
     password=$(cat ./password.txt)
 
-    ssh_manager "echo '${password}' | sudo -S docker config rm cfg_rpc cfg_referral cfg_wscfg pg_ca 2>&1 > /dev/null"
-    ssh_manager "echo '${password}' | sudo -S docker config create cfg_rpc ./deployment/live.rpc.json 2>&1 > /dev/null"
-    ssh_manager "echo '${password}' | sudo -S docker config create cfg_referral ./deployment/live.referralSettings.json 2>&1 > /dev/null"
-    ssh_manager "echo '${password}' | sudo -S docker config create cfg_wscfg ./deployment/live.wsConfig.json 2>&1 > /dev/null"
+    echo "Removing old docker configs"
+    ssh_manager "echo '${password}' | sudo -S docker config rm cfg_rpc cfg_referral cfg_wscfg pg_ca"
+
+    echo "Updating docker configs"
+    ssh_manager "echo '${password}' | sudo -S docker config create cfg_rpc ./deployment/live.rpc.json >/dev/null 2>&1"
+    ssh_manager "echo '${password}' | sudo -S docker config create cfg_referral ./deployment/live.referralSettings.json >/dev/null 2>&1"
+    ssh_manager "echo '${password}' | sudo -S docker config create cfg_wscfg ./deployment/live.wsConfig.json >/dev/null 2>&1"
 
     if [ -e "./deployment/pg.crt" ];then
-        ssh_manager "echo '${password}' | sudo -S docker config create pg_ca ./deployment/pg.crt 2>&1 > /dev/null"
+        echo "Creating pg_ca docker config"
+        ssh_manager "echo '${password}' | sudo -S docker config create pg_ca ./deployment/pg.crt >/dev/null 2>&1"
     fi
 
+    echo "Deploying docker stack to swarm"
     ssh_manager \
 "$(cat << EOF
     cd ./deployment && echo '${password}' | sudo -S bash -c ". .env && docker compose -f ./docker-stack.yml config | sed -E 's/published: \"([0-9]+)\"/published: \1/g' | sed -E 's/^name: .*$/ /'|  docker stack deploy -c - stack"
@@ -209,16 +212,16 @@ run_collect_domains_cp_nginxconf() {
         echo ""
         echo "-------------------------------------------------------------------"
         echo "!!! Make sure you have configured your DNS A records to point to manager node !!!"
-        echo "Manager node public IP address (${mip})"
-        echo "Nginx configuring was completed successfully. Do you want to set up"
-        echo "HTTPS (install SSL certificates from Letsencrypt via certbot)"
+        echo "Nginx configuring was completed successfully."
+        echo "Manager node public IP address: ${mip}"
         echo "-------------------------------------------------------------------"
-        echo ""
+        echo "Do you want to set up certbot on swarm manager?"
+        echo "(install SSL certificates from Letsencrypt via certbot)"
         read -p "(y/n) [y]: " setup_certs
         setup_certs=${setup_certs:-"y"}
         if [  "$setup_certs" = "y" ];then
             echo "Running certbot setup for nginx on manager. If you get asked for ${DEFAULT_USER_NAME} password, you can find it in ./password.txt"
-            ssh_manager -t "sudo certbot --nginx"
+            ssh_manager -t "echo '${password}' | sudo -S certbot --nginx"
             wait
         fi
 
@@ -271,16 +274,19 @@ run_configure_broker_server_nginx_certbot() {
         ./playbooks/broker.ansible.yaml
 
     echo ""
-    echo "Configuring certbot on broker server"    
     echo "Confirm that you have set up DNS A record ${BROKER_HOST} to point to your broker server ip address ${mip}."
     read -p "Press enter to confirm..." continue
 
-    ssh_broker -t "sudo certbot --nginx"
-    wait
+    read -p "Configure certbot for nginx on broker server (y/n)[y]: " setup_certs
+    setup_certs=${setup_certs:-"y"}
+    if [ "$setup_certs" == "y" ]; then
+        ssh_broker -t "echo '${password}' | sudo -S certbot --nginx"
+        wait
+    fi
     echo "Broker server setup done!"
     echo "Make sure you have edited REMOTE_BROKER_HTTP value in your deployment/.env file!" 
-    read -p      "Press enter to confirm..." continue
-
+    read -p "Press enter to confirm..." continue
+    echo ""
 }
 
 echo -e "Welcome to D8X trader backend cluster setup. \nThis script will guide you on setting up and starting your d8x-trader-backend cluster on Linode\n"
