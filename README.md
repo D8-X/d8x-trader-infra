@@ -8,9 +8,28 @@ d8x-trader docker swarm cluster on linode cloud.
 **Make sure you read this documentation to properly setup your d8x-trader
 backend cluster!**
 
-# Provisioning cluster
 
-Before starting, make sure you have the following tools installed on your
+# Database Cluster
+First, we create a database cluster. Since provisioning of database
+cluster usually takes ~30 minutes, it is not included in this
+automation script.
+
+Follow [this guide](https://www.linode.com/docs/products/databases/managed-databases/guides/create-database/) 
+for more info about creating a managed postgres database cluster on Linode. When creating your database cluster, 
+select the latest version of postgres and set the region to be the one which you will set up the servers.
+Create two databases, `history` and `referral` within the cluster (e.g., using [DBeaver](https://dbeaver.io/) or
+the native psql from [postgresql](https://www.postgresql.org/)).
+
+# Linode
+
+Create Linode API token, you will need to provide it when provisioning servers.
+This can be done in your Linode dashboard. Follow this guide on getting your
+Linode PAT:
+https://www.linode.com/docs/products/tools/api/guides/manage-api-tokens/ 
+
+# Installations
+
+Before starting, ensure you have the following tools installed on your
 system:
 
 - [Terraform](https://developer.hashicorp.com/terraform/downloads)
@@ -36,29 +55,8 @@ $ terraform init
 Make sure you have a domain and are able to edit its DNS settings as you will
 need this when setting up SSL certificate with certbot.
 
-## Linode
-
-Create Linode API token, you will need to provide it when provisioning servers.
-This can be done in your Linode dashboard. Follow this guide on getting your
-Linode PAT:
-https://www.linode.com/docs/products/tools/api/guides/manage-api-tokens/ 
 
 
-You will also need to create a database cluster. Since provisioning of database
-cluster usually takes ~30 minutes, therefore, it is not included in this
-automation script and we recommend to provision it before running this setup.
-
-Follow [this guide](https://www.linode.com/docs/products/databases/managed-databases/guides/create-database/) 
-for more info about creating managed postgres database on linode.
-
-When creating your database, make sure you select latest version of postgres and
-set the region to be the one which you will set up.
-
-Once you have your postgres cluster, grab your database cluster id from linode's
-dashboard. Database id can be found in database's overview page url:
-```
-https://cloud.linode.com/databases/postgresql/81283 -> db id is 81283
-```
 
 # Swarm and broker-server
 
@@ -71,14 +69,13 @@ Swarm deployment deploys `d8x-trader-backend` services:
 Swarm deployment related configuration files reside in `deployment` directory,
 these files are copied to manager node when spinning up the services.
 
-
 Optional broker server deployment deploys `d8x-broker-server` remote broker
-service. Directory `depoloyment-broker` contains configs related to broker
+service. The directory `deployment-broker` contains configs related to broker
 server deployment.
 
 ## Dot env and configs
 
-Copy the `.env.example` as `.env` in `deployment` directory
+In the checked-out d8x-trader-infra repository, copy the `.env.example` as `.env` in the `deployment` directory
 
 You can edit environment variables in `deployment/.env` file. Environment
 variables defined in `.env` will be used when deploying docker stack in swarm.
@@ -124,7 +121,7 @@ You will need the following details to spin up a cluster:
 - Linode API token, which you can get in your linode account settings
 - Provisioned database cluster in linode. You can get the ID of database cluster
   from the cluster management url
-  (https://cloud.linode.com/databases/postgresql/<ID>) or via `linode-cli`. 
+  (https://cloud.linode.com/databases/postgresql/<ID>) or via `linode-cli`.
 
 Note that setting everything up can take about 10 minutes.
 
