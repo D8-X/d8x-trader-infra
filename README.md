@@ -233,9 +233,9 @@ configuring them with ansible to run a docker swarm.
 You will need the following details to spin up a cluster:
 
 - Linode API token, which you can get in your linode account settings
-- Provisioned database cluster in linode. You can get the ID of database cluster
+- Provisioned database cluster in linode. You can get the ID of your database cluster
   from the cluster management url
-  (https://cloud.linode.com/databases/postgresql/<ID>) or via `linode-cli`.
+  (https://cloud.linode.com/databases/postgresql/THEID) or via `linode-cli`.
 
 Note that setting everything up can take about 10 minutes.
 
