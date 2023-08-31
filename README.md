@@ -250,6 +250,17 @@ services. These domain/subdomain values will be used in nginx configuration as
 to manager node's public IP address as this will be needed when issuing
 certificates via certbot to enable HTTPS.
 
+# Update Images
+You can update the backend-service application by using the following docker update command.
+For example:
+```
+docker service update --image "ghcr.io/d8-x/d8x-trader-main:dev@sha256:aea8e56d6077c733a1d553b4291149712c022b8bd72571d2a852a5478e1ec559" stack_api
+```
+To find the hash (sha256:...), navigate to the root of the github repository,
+click on packages, choose the package and version you want to update and the hash is
+displayed on the top. For example, choose "trader-main" and click the relevant version
+for the main broker services.
+
 # Teardown
 
 ## Completely remove cluster
