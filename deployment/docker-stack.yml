@@ -31,8 +31,8 @@ services:
       - CHAIN_ID=${CHAIN_ID:-80001}
       - SDK_CONFIG_NAME=${SDK_CONFIG_NAME:-testnet}
       - CORS_ON=${CORS_ON:-FALSE}
-      - PORT_REST=${MAIN_API_PORT_HTTP:-3001}
-      - PORT_WEBSOCKET=${MAIN_API_PORT_WEBSOCKET:-3002}
+      - MAIN_API_PORT_HTTP=${MAIN_API_PORT_HTTP:-3002}
+      - MAIN_API_PORT_WEBSOCKET=${MAIN_API_PORT_WEBSOCKET:-3002}
       - CONFIG_PATH_RPC=/cfg_rpc
       - CONFIG_PATH_REFERRAL_SETTINGS=/cfg_referral
       - CONFIG_PATH_WSCFG=/cfg_wscfg
@@ -48,10 +48,10 @@ services:
     image: ghcr.io/d8-x/d8x-trader-history:dev
     environment:
       - DATABASE_DSN_HISTORY=${DATABASE_DSN_HISTORY}
-      - API_PORT=${HISTORY_API_PORT_HTTP:-3003}
+      - HISTORY_API_PORT_HTTP=${HISTORY_API_PORT_HTTP:-3003}
       - SDK_CONFIG_NAME=${SDK_CONFIG_NAME}
       - CHAIN_ID=${CHAIN_ID}
-      - CORS_ON=${CORS_ON}
+      - CORS_ON=${CORS_ON:-FALSE}
       - CONFIG_PATH_RPC=/cfg_rpc
       - CONFIG_PATH_REFERRAL_SETTINGS=/cfg_referral
       - CONFIG_PATH_WSCFG=/cfg_wscfg
@@ -75,7 +75,7 @@ services:
     environment:
       - REDIS_URL=${REDIS_URL:-redis://:thisismypassword@redis:6379/0}
       - DATABASE_DSN_REFERRAL=${DATABASE_DSN_REFERRAL}
-      - REFERRAL_API_PORT=${REFERRAL_API_PORT_HTTP:-3004}
+      - REFERRAL_API_PORT_HTTP=${REFERRAL_API_PORT_HTTP:-3004}
       - BROKER_KEY=${BROKER_KEY}
       - REMOTE_BROKER_HTTP=${REMOTE_BROKER_HTTP}
       - CHAIN_ID=${CHAIN_ID}
