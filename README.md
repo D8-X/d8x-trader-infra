@@ -83,9 +83,9 @@ variables defined in `.env` will be used when deploying docker stack in swarm.
 <details><summary>Here is how we configure the environment file.</summary>
  
 - Provide the connection strings as `DATABASE_DSN_HISTORY` and
-`DATABASE_DSN_REFERRALS` environment variables in your `.env` file. See
-https://stackoverflow.com/questions/3582552/what-is-the-format-for-the-postgresql-connection-string-url/20722229#20722229
-for more info about DSN structure.
+`DATABASE_DSN_REFERRALS` environment variables in your `.env` file. If your password contains a dollar sign
+`$`, it needs to be escaped, that is, replace `$` by `\$`. See
+[also here](https://stackoverflow.com/questions/3582552/what-is-the-format-for-the-postgresql-connection-string-url/20722229#20722229) for more info about DSN structure.
 - Insert a broker key (BROKER_KEY=”abcde0123…” without “0x”).
     - Option 1: Broker Key on Server
         - if the broker key is to be hosted on this server, then you also set the broker fee. That is, adjust BROKER_FEE_TBPS. The unit is tenth of a basis point, so 60 = 6 basis points = 0.06%.
