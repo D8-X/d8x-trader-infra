@@ -79,7 +79,7 @@ services:
       - BROKER_KEY=${BROKER_KEY}
       - REMOTE_BROKER_HTTP=${REMOTE_BROKER_HTTP}
       - CHAIN_ID=${CHAIN_ID}
-      - CORS_ON=${CORS_ON}
+      - CORS_ON=${CORS_ON:-FALSE}
       - HISTORY_API_ENDPOINT="http://history:${HISTORY_API_PORT_HTTP:-3003}"
       - CONFIG_PATH_RPC=/cfg_rpc
       - CONFIG_PATH_REFERRAL_SETTINGS=/cfg_referral
