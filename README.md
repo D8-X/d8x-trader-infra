@@ -1,5 +1,7 @@
 # D8X-trader-backend infrastructure
 
+**this is being replaced by https://github.com/D8-X/d8x-cli**
+
 This directory contains infrastructure and deployment automation code for
 d8x-trader-backend and optionally for d8x-broker-server. This readme acts as a
 guide on how to use this repository and its contents to automatically spin up
